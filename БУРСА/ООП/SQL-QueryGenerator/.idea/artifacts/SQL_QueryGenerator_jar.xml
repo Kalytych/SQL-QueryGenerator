@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="SQL-QueryGenerator:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/SQL_QueryGenerator_jar</output-path>
+    <root id="archive" name="SQL-QueryGenerator.jar">
+      <element id="module-output" name="SQL-QueryGenerator" />
+    </root>
+  </artifact>
+</component>
