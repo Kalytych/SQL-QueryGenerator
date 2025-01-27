@@ -84,43 +84,6 @@ public class User {
   }
 }
 
-class Request {
-
-  private User user;
-  private String requestContent;
-  private SQLQuery sqlQuery; // Запит, пов'язаний з запитом
-
-  public Request(User user, String requestContent) {
-    this.user = user;
-    this.requestContent = requestContent;
-  }
-
-  // Гетери та сетери
-  public User getUser() {
-    return user;
-  }
-
-  public void setUser(User user) {
-    this.user = user;
-  }
-
-  public String getRequestContent() {
-    return requestContent;
-  }
-
-  public void setRequestContent(String requestContent) {
-    this.requestContent = requestContent;
-  }
-
-  public SQLQuery getSqlQuery() {
-    return sqlQuery;
-  }
-
-  public void setSqlQuery(SQLQuery sqlQuery) {
-    this.sqlQuery = sqlQuery;
-  }
-}
-
 class SQLQuery {
 
   private String query;
