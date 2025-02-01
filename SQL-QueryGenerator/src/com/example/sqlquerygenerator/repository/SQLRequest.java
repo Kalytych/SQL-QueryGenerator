@@ -58,7 +58,7 @@ public class SQLRequest {
 
     String columnsStr = String.join(", ", columns);
     String valuesStr = values.stream()
-        .map(value -> "'" + value + "'")
+        .map(value -> value.contains("'") ? "'" + value.replace("'", "''") + "'" : "'" + value + "'")
         .collect(Collectors.joining(", "));
 
     return "INSERT INTO " + tableName + " (" + columnsStr + ") VALUES (" + valuesStr + ");";
@@ -68,9 +68,14 @@ public class SQLRequest {
    * Генерує SQL-запит для операції SELECT.
    *
    * @return строка SQL-запиту SELECT
+   * @throws IllegalArgumentException якщо умова не є правильною
    */
   public String generateSelectQuery() {
-    String columnsStr = columns != null ? String.join(", ", columns) : "*";
+    if (condition != null && !condition.isEmpty() && !isValidCondition(condition)) {
+      throw new IllegalArgumentException("Неправильна умова.");
+    }
+
+    String columnsStr = (columns != null && !columns.isEmpty()) ? String.join(", ", columns) : "*";
     String conditionStr = (condition != null && !condition.isEmpty()) ? " WHERE " + condition : "";
     return "SELECT " + columnsStr + " FROM " + tableName + conditionStr + ";";
   }
@@ -80,15 +85,23 @@ public class SQLRequest {
    *
    * @return строка SQL-запиту UPDATE
    * @throws IllegalArgumentException якщо розмір списків columns та values не співпадає
+   * @throws IllegalArgumentException якщо умова не є правильною
    */
   public String generateUpdateQuery() {
     if (columns == null || values == null || columns.size() != values.size()) {
       throw new IllegalArgumentException("Columns and values must be the same size.");
     }
 
+    if (condition != null && !condition.isEmpty() && !isValidCondition(condition)) {
+      throw new IllegalArgumentException("Неправильна умова.");
+    }
+
     StringBuilder setClause = new StringBuilder();
     for (int i = 0; i < columns.size(); i++) {
-      setClause.append(columns.get(i)).append(" = '").append(values.get(i)).append("'");
+      setClause.append(columns.get(i)).append(" = '")
+          .append(values.get(i).contains("'") ? values.get(i).replace("'", "''") : values.get(i))
+          .append("'");
+
       if (i < columns.size() - 1) {
         setClause.append(", ");
       }
@@ -103,9 +116,26 @@ public class SQLRequest {
    * Генерує SQL-запит для операції DELETE.
    *
    * @return строка SQL-запиту DELETE
+   * @throws IllegalArgumentException якщо умова не є правильною
    */
   public String generateDeleteQuery() {
+    if (condition != null && !condition.isEmpty() && !isValidCondition(condition)) {
+      throw new IllegalArgumentException("Неправильна умова.");
+    }
+
     String conditionStr = (condition != null && !condition.isEmpty()) ? " WHERE " + condition : "";
     return "DELETE FROM " + tableName + conditionStr + ";";
+  }
+
+  /**
+   * Перевірка коректності умови.
+   *
+   * @param condition умова
+   * @return true, якщо умова правильна, інакше false
+   */
+  private boolean isValidCondition(String condition) {
+    // Простий регулярний вираз для перевірки умови
+    // Можна змінити на складніший, залежно від вашої бізнес-логіки
+    return condition.matches("^[a-zA-Z_][a-zA-Z0-9_]*\\s*=\\s*.*");
   }
 }

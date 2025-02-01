@@ -1,27 +1,33 @@
 package com.example.sqlquerygenerator;
 
+import com.example.sqlquerygenerator.repository.JSONFileHandler;
 import com.example.sqlquerygenerator.repository.SQLRequest;
 import com.example.sqlquerygenerator.repository.UserRepository;
 import com.example.sqlquerygenerator.unitofwork.UnitOfWork;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import java.util.Scanner;
 
 /**
- * Головний клас програми для роботи з генерацією SQL-запитів, реєстрацією та авторизацією
- * користувачів.
+ * Головний клас програми, який надає користувачу можливість реєстрації, авторизації,
+ * а також генерації SQL-запитів.
  */
 public class Main {
 
   private static final UnitOfWork unitOfWork = new UnitOfWork(new UserRepository());
+  private static final String JSON_USER_FILE = "src/com/example/SqlQueryGenerator/users.json";
 
   /**
-   * Точка входу програми.
+   * Точка входу в програму.
+   * Запускає головне меню та обробляє вибір користувача.
    *
-   * @param args аргументи командного рядка
+   * @param args аргументи командного рядка (не використовуються)
    */
   public static void main(String[] args) {
     Scanner scanner = new Scanner(System.in);
+
+    loadUsersFromJSON();
 
     while (true) {
       System.out.println("Оберіть дію:");
@@ -37,6 +43,7 @@ public class Main {
         case 2 -> authorizeUser(scanner);
         case 3 -> generateSQL(scanner);
         case 4 -> {
+          saveUsersToJSON();
           System.out.println("До побачення!");
           return;
         }
@@ -46,9 +53,10 @@ public class Main {
   }
 
   /**
-   * Реєстрація нового користувача через UnitOfWork.
+   * Реєстрація нового користувача.
+   * Запитує користувача дані для реєстрації та додає його до списку користувачів.
    *
-   * @param scanner об'єкт Scanner для введення даних користувача
+   * @param scanner об'єкт для зчитування введених даних
    */
   private static void registerUser(Scanner scanner) {
     System.out.println("Реєстрація:");
@@ -57,10 +65,17 @@ public class Main {
 
     System.out.print("Введіть вік: ");
     int age = scanner.nextInt();
-    scanner.nextLine(); // Очистка буфера
+    scanner.nextLine();
 
     System.out.print("Введіть логін: ");
     String username = scanner.nextLine();
+
+    // Перевірка на існуючий логін
+    if (unitOfWork.getUserRepository().getAllUsers().stream()
+        .anyMatch(u -> u.getUsername().equals(username))) {
+      System.out.println("Такий логін вже існує. Спробуйте ще раз.");
+      return;
+    }
 
     System.out.print("Введіть пароль: ");
     String password = scanner.nextLine();
@@ -69,6 +84,7 @@ public class Main {
 
     if (UserValidator.validateUser(newUser)) {
       unitOfWork.getUserRepository().addUser(newUser);
+      saveUsersToJSON();
       System.out.println("Користувача успішно зареєстровано!");
     } else {
       System.out.println("Реєстрація не вдалася. Перевірте дані та спробуйте знову.");
@@ -76,9 +92,10 @@ public class Main {
   }
 
   /**
-   * Авторизація користувача через UnitOfWork.
+   * Авторизація користувача.
+   * Перевіряє, чи існує користувач з введеним логіном і паролем.
    *
-   * @param scanner об'єкт Scanner для введення даних користувача
+   * @param scanner об'єкт для зчитування введених даних
    */
   private static void authorizeUser(Scanner scanner) {
     System.out.println("Авторизація:");
@@ -101,9 +118,10 @@ public class Main {
   }
 
   /**
-   * Генерація SQL-запитів за вибором користувача.
+   * Генерація SQL-запитів.
+   * Запитує користувача тип запиту та генерує SQL-запит відповідно до вибору.
    *
-   * @param scanner об'єкт Scanner для введення даних користувача
+   * @param scanner об'єкт для зчитування введених даних
    */
   private static void generateSQL(Scanner scanner) {
     System.out.println("Генерація SQL-запитів:");
@@ -135,7 +153,15 @@ public class Main {
       }
       case 2 -> {
         System.out.print("Введіть умову (або залиште порожнім): ");
-        String condition = scanner.nextLine();
+        String condition;
+        while (true) {
+          condition = scanner.nextLine();
+          if (isValidCondition(condition)) {
+            break; // Якщо умова правильна, вийдемо з циклу
+          } else {
+            System.out.println("Неправильна умова. Спробуйте ще раз.");
+          }
+        }
         sqlRequest = new SQLRequest(tableName, Arrays.asList(columns), null, condition);
         String selectQuery = sqlRequest.generateSelectQuery();
         System.out.println("Згенерований SELECT-запит:");
@@ -145,22 +171,72 @@ public class Main {
         System.out.print("Введіть нові значення (через кому): ");
         String[] values = scanner.nextLine().split(", *");
         System.out.print("Введіть умову (або залиште порожнім): ");
-        String condition = scanner.nextLine();
-        sqlRequest = new SQLRequest(tableName, Arrays.asList(columns), Arrays.asList(values),
-            condition);
+        String condition;
+        while (true) {
+          condition = scanner.nextLine();
+          if (isValidCondition(condition)) {
+            break; // Якщо умова правильна, вийдемо з циклу
+          } else {
+            System.out.println("Неправильна умова. Спробуйте ще раз.");
+          }
+        }
+        sqlRequest = new SQLRequest(tableName, Arrays.asList(columns), Arrays.asList(values), condition);
         String updateQuery = sqlRequest.generateUpdateQuery();
         System.out.println("Згенерований UPDATE-запит:");
         System.out.println(updateQuery);
       }
       case 4 -> {
         System.out.print("Введіть умову (або залиште порожнім): ");
-        String condition = scanner.nextLine();
+        String condition;
+        while (true) {
+          condition = scanner.nextLine();
+          if (isValidCondition(condition)) {
+            break; // Якщо умова правильна, вийдемо з циклу
+          } else {
+            System.out.println("Неправильна умова. Спробуйте ще раз.");
+          }
+        }
         sqlRequest = new SQLRequest(tableName, Arrays.asList(columns), null, condition);
         String deleteQuery = sqlRequest.generateDeleteQuery();
         System.out.println("Згенерований DELETE-запит:");
         System.out.println(deleteQuery);
       }
       default -> System.out.println("Неправильний вибір. Спробуйте знову.");
+    }
+  }
+
+  /**
+   * Метод для перевірки правильності умови.
+   * Можна розширити регулярний вираз для складніших перевірок.
+   *
+   * @param condition умова, яку перевіряємо
+   * @return true, якщо умова правильна, false — якщо неправильна
+   */
+  private static boolean isValidCondition(String condition) {
+    // Простий приклад перевірки: перевіряємо, чи умова має формат "стовпець оператор значення"
+    return condition.matches("^[a-zA-Z_][a-zA-Z0-9_]*\\s*=[^\\s].*");
+  }
+
+  /**
+   * Завантаження користувачів з JSON файлу.
+   */
+  private static void loadUsersFromJSON() {
+    List<User> users = JSONFileHandler.readFromJsonFile(JSON_USER_FILE, User.class);
+    if (users != null) {
+      users.forEach(unitOfWork.getUserRepository()::addUser);
+      System.out.println("Користувачі успішно завантажені з файлу JSON.");
+    }
+  }
+
+  /**
+   * Збереження користувачів у JSON файл.
+   */
+  private static void saveUsersToJSON() {
+    List<User> users = unitOfWork.getUserRepository().getAllUsers();
+    if (JSONFileHandler.writeToJsonFile(JSON_USER_FILE, users)) {
+      System.out.println("Користувачі успішно збережені у файл.");
+    } else {
+      System.err.println("Помилка збереження користувачів у файл.");
     }
   }
 }

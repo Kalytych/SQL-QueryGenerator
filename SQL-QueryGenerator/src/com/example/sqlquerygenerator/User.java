@@ -4,6 +4,10 @@ package com.example.sqlquerygenerator;
  * Клас User представляє користувача системи з основними атрибутами, такими як ID, ім'я, вік, ім'я
  * користувача та пароль. Він також містить методи для авторизації та перевірки валідації даних.
  */
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class User {
 
   private int id; // Унікальний ідентифікатор користувача
@@ -13,7 +17,7 @@ public class User {
   private String password; // Пароль користувача
 
   /**
-   * Конструктор класу User для ініціалізації об'єкта користувача з заданими параметрами.
+   * Конструктор класу User з анотацією @JsonCreator для коректної десеріалізації з JSON.
    *
    * @param id       унікальний ідентифікатор користувача
    * @param name     ім'я користувача
@@ -21,7 +25,14 @@ public class User {
    * @param username ім'я користувача для входу в систему
    * @param password пароль користувача
    */
-  public User(int id, String name, int age, String username, String password) {
+  @JsonCreator
+  public User(
+      @JsonProperty("id") int id,
+      @JsonProperty("name") String name,
+      @JsonProperty("age") int age,
+      @JsonProperty("username") String username,
+      @JsonProperty("password") String password
+  ) {
     this.id = id;
     this.name = name;
     this.age = age;
@@ -30,20 +41,15 @@ public class User {
   }
 
   /**
-   * Отримати унікальний ідентифікатор користувача.
-   *
-   * @return id користувача
+   * Порожній конструктор для Jackson.
    */
+  public User() {
+  }
+
   public int getId() {
     return id;
   }
 
-  /**
-   * Встановити унікальний ідентифікатор користувача.
-   *
-   * @param id унікальний ідентифікатор користувача
-   * @throws IllegalArgumentException якщо id менше або рівне 0
-   */
   public void setId(int id) {
     if (id <= 0) {
       throw new IllegalArgumentException("ID має бути додатнім числом");
@@ -51,39 +57,18 @@ public class User {
     this.id = id;
   }
 
-  /**
-   * Отримати ім'я користувача.
-   *
-   * @return ім'я користувача
-   */
   public String getName() {
     return name;
   }
 
-  /**
-   * Встановити ім'я користувача.
-   *
-   * @param name ім'я користувача
-   */
   public void setName(String name) {
     this.name = name;
   }
 
-  /**
-   * Отримати вік користувача.
-   *
-   * @return вік користувача
-   */
   public int getAge() {
     return age;
   }
 
-  /**
-   * Встановити вік користувача.
-   *
-   * @param age вік користувача
-   * @throws IllegalArgumentException якщо вік менше 0
-   */
   public void setAge(int age) {
     if (age < 0) {
       throw new IllegalArgumentException("Вік не може бути від'ємним");
@@ -91,39 +76,18 @@ public class User {
     this.age = age;
   }
 
-  /**
-   * Отримати ім'я користувача для входу в систему.
-   *
-   * @return ім'я користувача
-   */
   public String getUsername() {
     return username;
   }
 
-  /**
-   * Встановити ім'я користувача для входу в систему.
-   *
-   * @param username ім'я користувача
-   */
   public void setUsername(String username) {
     this.username = username;
   }
 
-  /**
-   * Отримати пароль користувача.
-   *
-   * @return пароль користувача
-   */
   public String getPassword() {
     return password;
   }
 
-  /**
-   * Встановити пароль користувача.
-   *
-   * @param password пароль користувача
-   * @throws IllegalArgumentException якщо пароль має менше 6 символів
-   */
   public void setPassword(String password) {
     if (password.length() < 6) {
       throw new IllegalArgumentException("Пароль має містити щонайменше 6 символів");
@@ -131,26 +95,14 @@ public class User {
     this.password = password;
   }
 
-  /**
-   * Перевірити авторизацію користувача за допомогою порівняння ім'я користувача та пароля.
-   *
-   * @param username ім'я користувача для перевірки
-   * @param password пароль користувача для перевірки
-   * @return true, якщо ім'я користувача та пароль співпадають; false в іншому випадку
-   */
   public boolean authorize(String username, String password) {
     return this.username.equals(username) && this.password.equals(password);
   }
 
-  /**
-   * Представлення користувача у вигляді рядка для виведення.
-   *
-   * @return рядкове представлення користувача
-   */
   @Override
   public String toString() {
     return "User{" +
-        "id=" + id + // Додано id
+        "id=" + id +
         ", name='" + name + '\'' +
         ", age=" + age +
         ", username='" + username + '\'' +
@@ -158,9 +110,6 @@ public class User {
   }
 }
 
-/**
- * Клас SQLQuery представляє SQL запит разом з його статусом.
- */
 class SQLQuery {
 
   private String query; // SQL запит
